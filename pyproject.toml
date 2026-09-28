@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiny-vllm"
+version = "0.1.0"
+description = "Build vLLM from first principles: a minimal educational inference engine with block-based KV cache and paged attention."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "torch>=2.2",
+    # PyTorch 2.2.x (the last release with macOS x86_64 wheels) is not compatible with NumPy 2.
+    "numpy<2; platform_system == 'Darwin' and platform_machine == 'x86_64'",
+    "transformers>=4.45,<5",
+    "safetensors>=0.4",
+    "huggingface_hub>=0.23",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.14", "pre-commit>=4.0"]
+# Optional GPU track (docs/08-gpu-track.md). Never required: the CPU path is the course.
+gpu = ["triton>=3.0"]
+
+[tool.setuptools]
+packages = ["tiny_vllm", "tiny_vllm.kernels"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # bugbear
+]
+ignore = [
+    "E501",  # line length is handled by the formatter
+    "B905",  # zip(strict=...) adds noise for learners
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "B017"]  # assert False / pytest.raises(Exception) are fine in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["tiny_vllm", "helpers"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "m1: Milestone 1 - TinyLlama",
+    "m2: Milestone 2 - Generation + KV Cache",
+    "m3: Milestone 3 - Block-Based KV Cache",
+    "m4: Milestone 4 - Paged Attention",
+    "m5: Milestone 5 - Multi-Request Engine",
+    "m6: Milestone 6 - Continuous Batching",
+    "checkpoint(id, description): the checkpoint a test belongs to, e.g. checkpoint('3.2', 'block allocation works')",
+    "integration: milestone-level integration test",
+    "hf: requires downloading the real HuggingFace model (deselect with -m 'not hf')",
+    "gpu: optional GPU track; requires CUDA + Triton and is skipped otherwise",
+    "slow: slow test",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore:.*torch_dtype.*:UserWarning",
+]
