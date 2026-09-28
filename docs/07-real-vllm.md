@@ -1,10 +1,17 @@
 # How Real vLLM Goes Beyond tiny-vllm
 
 This document is explanatory only. It maps the concepts you implemented onto the
-corresponding parts of vLLM (the V1 engine, `vllm/v1/`, as found on the `main`
-branch in September 2026) and lists what vLLM adds on top. File paths were checked
-against the repository at the time of writing; internals move fast, so treat the
-paths as a starting point for reading, not as a specification.
+corresponding parts of vLLM (the V1 engine, `vllm/v1/`) and lists what vLLM adds
+on top.
+
+**Snapshot.** File paths and class names below were inspected against
+[vllm-project/vllm](https://github.com/vllm-project/vllm) `main` at commit
+[`004e37ece2fd3f49b5ba471e016668f23d0e7c8b`](https://github.com/vllm-project/vllm/commit/004e37ece2fd3f49b5ba471e016668f23d0e7c8b)
+(2026-09-28). The latest tagged release at that time was
+[`v0.30.0`](https://github.com/vllm-project/vllm/releases/tag/v0.30.0). Internals
+move fast, so treat the paths as a starting point for reading, not as a
+specification. If a path no longer exists, start from that commit rather than
+from current `main`.
 
 # Concept map
 
