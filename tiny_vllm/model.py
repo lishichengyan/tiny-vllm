@@ -59,7 +59,12 @@ class DecoderLayer(nn.Module):
         through to ``self.self_attn``; this layer does not interpret them.
         """
         # TODO(student): Milestone 1
-        raise NotImplementedError("Milestone 1 (1.4): implement DecoderLayer.forward()")
+        # raise NotImplementedError("Milestone 1 (1.4): implement DecoderLayer.forward()")
+        x = hidden_states + self.self_attn(
+            self.input_layernorm(hidden_states), positions, cos, sin, kv_cache, attn_metadata
+        )
+        x = x + self.mlp(self.post_attention_layernorm(x))
+        return x
 
 
 class TinyLlama(nn.Module):
@@ -108,4 +113,9 @@ class TinyLlama(nn.Module):
         -> every decoder layer -> final norm -> lm_head.
         """
         # TODO(student): Milestone 1
-        raise NotImplementedError("Milestone 1 (1.6): implement TinyLlama.forward()")
+        # raise NotImplementedError("Milestone 1 (1.6): implement TinyLlama.forward()")
+        x = self.embed_tokens(input_ids)
+        rope_cos, rope_sin = compute_rope_cos_sin(positions)
+        x = self.layers(x, positions, rope_cos, rope_sin, kv_cache, attn_metadata)
+        x = self.lm_head(self.norm(x))
+        return x
