@@ -13,6 +13,7 @@ Shape conventions used throughout tiny-vllm:
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class RMSNorm(nn.Module):
@@ -29,15 +30,20 @@ class RMSNorm(nn.Module):
 
     def __init__(self, hidden_size: int, eps: float = 1e-5):
         super().__init__()
-        self.weight = nn.Parameter(torch.ones(hidden_size))
+        self.weight = nn.Parameter(torch.ones(hidden_size))  # shape: (hidden_size, )
         self.eps = eps
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: [..., hidden_size]  ->  [..., hidden_size]
         # TODO(student): Milestone 1
-        raise NotImplementedError("Milestone 1 (1.1): implement RMSNorm.forward()")
+        # raise NotImplementedError("Milestone 1 (1.1): implement RMSNorm.forward()")
+
+        # y = x / sqrt( mean(x²) + eps ) · weight
+        rms = torch.sqrt(torch.mean(x**2, dim=-1, keepdim=True) + self.eps)
+        return x / rms * self.weight
 
 
+# pytest -k "cos_sin or position_zero"
 def compute_rope_cos_sin(
     positions: torch.Tensor,
     head_dim: int,
@@ -66,7 +72,24 @@ def compute_rope_cos_sin(
           "rotate_half" pairing used by ``apply_rope``.
     """
     # TODO(student): Milestone 1
-    raise NotImplementedError("Milestone 1 (1.2): implement compute_rope_cos_sin()")
+    # raise NotImplementedError("Milestone 1 (1.2): implement compute_rope_cos_sin()")
+
+    # inv_freq = []
+    # for i in range(head_dim // 2):
+    #     inv_freq.append(theta**(-2 * i / head_dim))
+    # inv_freq_tensor = torch.tensor(inv_freq, dtype=torch.float32)
+
+    inv_freq_tensor = 1.0 / theta ** (torch.arange(0, head_dim, 2) / head_dim)
+
+    # (batch, seq_len) -> (batch, seq_len, 1)
+    positions_expanded = positions.unsqueeze(-1).float()
+
+    # (batch, seq_len, 1) x (head_dim//2, )
+    angles = positions_expanded * inv_freq_tensor
+
+    cos = torch.cos(angles).repeat(1, 1, 2).to(dtype)
+    sin = torch.sin(angles).repeat(1, 1, 2).to(dtype)
+    return cos, sin
 
 
 def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.Tensor:
@@ -88,7 +111,12 @@ def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.T
     logits, so test it against HuggingFace early.
     """
     # TODO(student): Milestone 1
-    raise NotImplementedError("Milestone 1 (1.2): implement apply_rope()")
+    # raise NotImplementedError("Milestone 1 (1.2): implement apply_rope()")
+    x1, x2 = torch.chunk(x, 2, dim=-1)
+    rotate_half = torch.cat((-x2, x1), dim=-1)
+    cos_with_good_dim = cos.unsqueeze(-2)
+    sin_with_good_dim = sin.unsqueeze(-2)
+    return x * cos_with_good_dim + rotate_half * sin_with_good_dim
 
 
 class MLP(nn.Module):
@@ -113,4 +141,8 @@ class MLP(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: [batch, seq_len, hidden_size]  ->  [batch, seq_len, hidden_size]
         # TODO(student): Milestone 1
-        raise NotImplementedError("Milestone 1 (1.4): implement MLP.forward()")
+        # raise NotImplementedError("Milestone 1 (1.4): implement MLP.forward()")
+        x1 = F.silu(self.gate_proj(x))
+        x2 = self.up_proj(x)
+        x3 = x1 * x2
+        return self.down_proj(x3)
